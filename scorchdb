@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# Copyright 2016 WebMarcIT Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# scorchdb - text cmdb
+#
+# Use a flat file as a light weight easy access, simple processing cmdb
+#
+# --file <file>		Specify another file name
+# --list			List the possible columns names 
+#
+# -<column name>	Display result from column name
+#                   If no columns are 
+# <regex>			A regex expression used to return columns
+#
+# VARIABLE naming convention
+# Variable names will use <prefix Hungarian Notation>_CamelCase
+# arr  array
+# b    boolean                  TRUE,1 | FALSE,0
+# c    character
+# dir  the variable defines a directory
+# file the variable defines a filename
+# str  string
+#
+# The idea behind this is that you can set up a file as a column driven
+# data source and the code will use labels in the file to work out the rest
+# If not data labels are found then numerical labels will be used.
+# 
+# Define the column names using "#DEF" at the start of the column list
+typeset local  file_DB=txtdb
+typeset -a arr_Columns=""
+typeset    str_Options=""
+typeset    str_Columns=""
+typeset       str_From=""
+typeset      str_Regex=""
+typeset         b_List=""
+typeset          c_FS=" "
+
+# pcmdb host -lai
+# col1    col2 col3 col4 col5 col6 col7 col8 col9
+# -long   -a   -i   -x   -p   -s   -t   -b   -w
+
+#typeset arr_Options=""
+
+# Get the full list of paramaters
+# ===============================
+if [ $# -ne 0 ] ; then
+  while [ $# -gt 0 ] ; do
+    case $1 in
+	  -h | --help ) Usage ;;
+	  -l | --list ) b_List=1 ;;
+	  -f | --file ) shift ; file_DB="$1"  ;;
+	  -*          ) str_Options="${str_Options} $1"            ;;
+	  +*          ) str_From="${str_From} $1:$2" ; shift ;;
+	  *           )   str_Regex="${str_Regex}   $1"            ;;
+	esac
+    shift
+  done
+fi
+
+# Check is DB file is readable
+# ============================
+[ ! -f ${file_DB} ] || [ ! -r ${file_DB} ] && echo "${file_DB}: not a readable file" && exit 1
+
+
+# Find the defined columns names in the text file and turn it into an array
+# =========================================================================
+typeset local str_Columns=$(grep "^#DEF" ${file_DB} 2>/dev/null | head -1)
+typeset local c_tmpFS=$(grep "^#FS" ${file_DB} 2>/dev/null | head -1)
+[ ! -z "${c_tmpFS}" ]     && str_FS="-F${c_tmpFS#\#FS=}"
+[   -z "${str_Columns}" ] && echo "Cannot find a column definition in file:${file_DB}" && exit 1
+arr_Columns=(${str_Columns#\#DEF})
+
+
+# If --list is present, show the columns defined
+# ==============================================
+[ ! -z "${b_List}" ] && echo " ${arr_Columns[@]}" | sed 's/ / -/g' && exit 0
+
+
+# If a Regex is passed set the cmd for grep
+# =========================================
+[ ! -z "${str_Regex}" ] && cmd_GREP="| grep -i "  || cmd_GREP=""
+
+
+# If we dont find any diplsay usage
+# =================================
+# Usage
+
+
+# We can now get rid of the minus signs in the passed column requests
+# ===================================================================
+str_Options=$(echo ${str_Options} | tr -d "-")
+typeset -a arr_Options=(${str_Options})
+
+
+# Check if Variable in Columns list
+# =================================
+typeset -i int_ColumnCount=1
+typeset -i int_OptionCount=1
+for str_Option in ${arr_Options[@]} ; do
+  [ ${int_OptionCount} -lt ${#arr_Options[@]} ] && c_Comma="," || c_Comma=""
+  # Check if a comman will be required at the end
+  int_ColumnCount=1
+  for str_Column in ${arr_Columns[@]}; do
+    if [ "${str_Option}" = "${str_Column}" ] ; then
+	   str_AWK="${str_AWK} \$${int_ColumnCount}${c_Comma}"
+    fi
+    (( int_ColumnCount++ ))
+  done
+  (( int_OptionCount++ ))
+done
+
+
+# Run the command to get the right values
+# =======================================
+eval "cat ${file_DB} ${cmd_GREP} ${str_Regex} | grep -v \"^#\" | awk ${str_FS} '{print ${str_AWK}}'"
+
+[ -z ${str_From} ] && exit 0
+
+# Work for selecting from specific columns
+#echo ""
+#echo "The checks"
+#echo "Options       :${arr_Options[@]}"
+echo "From column checks :${str_From}"
+#echo "regex         :${str_Regex}"
+#echo ${arr_Columns[@]##*os} ; echo $?
+#echo ${arr_Columns[@]#test} ; echo $?
+str_FS="-F${c_tmpFS#\#FS=}"
+typeset -i int_ColumnCount=1
+typeset -i int_OptionCount=1
+for str_Option in ${str_From} ; do
+  str_Column=${str_Option#+*:}
+  str_Value=${str_Option%*:*}
+  echo Check for ${str_Column} in $str_Value column
+  echo "Version with 10 and FS <${c_FS}>"
+ # grep "${c_FS}*.*${c_FS}*.*${c_FS}*10" ${file_DB}
+  [ ${int_OptionCount} -lt ${#arr_Options[@]} ] && c_Comma="," || c_Comma=""
+  # Check if a comman will be required at the end
+  int_ColumnCount=1
+  for str_Column in ${arr_Columns[@]}; do
+  echo "checking str_Option ${str_Option} in ${str_Column} value ${str_Value} "
+    if [ "+${str_Column}" = "${str_Value}" ] ; then
+	   echo "str_Option ${str_Option} found in column ${int_ColumnCount}"
+	   str_AWK="${str_AWK} \$${int_ColumnCount}${c_Comma}"
+    fi
+    (( int_ColumnCount++ ))
+  done
+  (( int_OptionCount++ ))
+done
+
+
