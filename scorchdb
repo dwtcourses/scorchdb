@@ -68,6 +68,11 @@ EXAMPLES
 \tscorchdb host -ila\n
 \tWill display the columsn labelled l a and i from a file named host
 \tThis might be the ip address, longname and alias to make a hosts file\n\n"
+TEXT DB
+#DEF hostname ip        xip          zone       depuser  svcuser env\n
+     scorch  10.0.0.1   10.1.0.1     red        depagent -       DEV
+     kiki    10.0.0.1   10.2.0.1     red        depagent scorch  DEV
+     sooty   10.9.4.2   88.88.88.88  green      depagent scorch  PROD\n
 exit 0
 }
 # pcmdb host -lai
