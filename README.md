@@ -8,6 +8,7 @@ SYNOPSIS
         scorchdb [--file <filename>] [--list] [--full] [-<column name>]* <str> [+<column name> <str>]
 
 OPTIONS
+
         --file <file>   Specify a file name to use
 
         --full          Ignore the columns and show the full line
