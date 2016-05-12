@@ -2,9 +2,11 @@
 System configuration text files can be used to drive derived deployments and runbooks 
 
 NAME
+
         scorchdb - light weight flat file text database
 
 SYNOPSIS
+
         scorchdb [--file <filename>] [--list] [--full] [-<column name>]* <str> [+<column name> <str>]
 
 OPTIONS
@@ -24,6 +26,7 @@ OPTIONS
                         Although powerful this feature can be slow so only used when necessary.
 
 EXAMPLES
+
         scorchdb host -ila
 
         Will display the columsn labelled l a and i from a file named host
