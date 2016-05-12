@@ -48,6 +48,28 @@ typeset      str_Regex=""
 typeset         b_List=""
 typeset          c_FS=" "
 
+Usage()
+{
+printf "
+NAME
+\tscorchdb - light weight flat file text database\n\n
+SYNOPSIS
+\tscorchdb [--file <filename>] [--list] [--full] [-<column name>]* <str> [+<column name> <str>]\n\n
+OPTIONS
+\t--file <file>  \tSpecify a file name to use\n
+\t--full         \tIgnore the columns and show the full line\n
+\t--list         \tList all available column names found in default
+\t               \tfile or file specified\n
+\t-<col> [-<col>]\tDisplay result for columns specified\n
+\t<regex string> \tA regex expression used to return columns\n
+\t+<col> <string>\tLimit to next search string to the column mentioned (horizonal grep)
+\t               \tAlthough powerful this feature can be slow so only used when necessary.\n\n
+EXAMPLES
+\tscorchdb host -ila\n
+\tWill display the columsn labelled l a and i from a file named host
+\tThis might be the ip address, longname and alias to make a hosts file\n\n"
+exit 0
+}
 # pcmdb host -lai
 # col1    col2 col3 col4 col5 col6 col7 col8 col9
 # -long   -a   -i   -x   -p   -s   -t   -b   -w
@@ -125,39 +147,41 @@ done
 
 # Run the command to get the right values
 # =======================================
-eval "cat ${file_DB} ${cmd_GREP} ${str_Regex} | grep -v \"^#\" | awk ${str_FS} '{print ${str_AWK}}'"
-
-[ -z ${str_From} ] && exit 0
+if [ -z "${str_From}" ] ; then
+  eval "cat ${file_DB} ${cmd_GREP} ${str_Regex} | grep -v \"^#\" | awk ${str_FS} '{print ${str_AWK}}'"
+  exit 0
+fi
 
 # Work for selecting from specific columns
-#echo ""
-#echo "The checks"
-#echo "Options       :${arr_Options[@]}"
-echo "From column checks :${str_From}"
-#echo "regex         :${str_Regex}"
-#echo ${arr_Columns[@]##*os} ; echo $?
-#echo ${arr_Columns[@]#test} ; echo $?
-str_FS="-F${c_tmpFS#\#FS=}"
+str_Like=""
+b_FoundColumn="FALSE"
 typeset -i int_ColumnCount=1
 typeset -i int_OptionCount=1
 for str_Option in ${str_From} ; do
   str_Column=${str_Option#+*:}
   str_Value=${str_Option%*:*}
-  echo Check for ${str_Column} in $str_Value column
-  echo "Version with 10 and FS <${c_FS}>"
  # grep "${c_FS}*.*${c_FS}*.*${c_FS}*10" ${file_DB}
   [ ${int_OptionCount} -lt ${#arr_Options[@]} ] && c_Comma="," || c_Comma=""
   # Check if a comman will be required at the end
   int_ColumnCount=1
-  for str_Column in ${arr_Columns[@]}; do
-  echo "checking str_Option ${str_Option} in ${str_Column} value ${str_Value} "
-    if [ "+${str_Column}" = "${str_Value}" ] ; then
-	   echo "str_Option ${str_Option} found in column ${int_ColumnCount}"
-	   str_AWK="${str_AWK} \$${int_ColumnCount}${c_Comma}"
+  for str_Check in ${arr_Columns[@]}; do
+    if [ "+${str_Check}" = "${str_Value}" ] ; then
+       b_FoundColumn=TRUE
+	   #str_AWK="${str_AWK} \$${int_ColumnCount}${c_Comma} : ${str_Check} "
+	   int_MyCount=${int_ColumnCount}
+	   str_MyStr=${str_Column}
+	   [ -z "${str_Like}" ] && str_Like="${str_Value} = ${str_Column}" ||  str_Like="${str_Like} AND ${str_Value} = ${str_Column}"
+	   break
     fi
     (( int_ColumnCount++ ))
   done
   (( int_OptionCount++ ))
+  if [ "${b_FoundColumn}" = "FALSE" ] ; then
+    echo "ERROR - no column found"
+    exit 1
+  fi
 done
 
-
+for int_EachGrep in $(eval "awk '{print \$$int_ColumnCount}' ${file_DB} | grep -n ${str_MyStr} | cut -d: -f1") ; do
+  eval "head -${int_EachGrep} ${file_DB} | tail -1 ${cmd_GREP} ${str_Regex} | grep -v \"^#\" | awk ${str_FS} '{print ${str_AWK}}'"
+done
