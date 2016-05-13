@@ -1,5 +1,5 @@
 # scorchdb
-DevOps - System configuration text files can be used to drive derived deployments and runbooks 
+System configuration text files can be used to drive derived deployments and runbooks 
 
 NAME
 
