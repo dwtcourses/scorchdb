@@ -234,6 +234,7 @@ fn_GetDetail()
 }
 
 for str_EachFile in ${file_DB} ; do
+  str_AWK=""
   fn_GetDetail ${str_EachFile}
 done
 exit
