@@ -7,7 +7,7 @@ NAME
 
 SYNOPSIS
 
-        scorchdb [--file <filename>] [--list] [--full] [-<column name>]* <str> [+<column name> <str>]
+        scorchdb [--file <filename>] [--list] [--full] [-<column name>]* <str> [+<column name> <str>] [-def "<col list>"]
 
 OPTIONS
 
@@ -17,6 +17,11 @@ OPTIONS
 
         --list          List all available column names found in default
                         file or file specified
+                        
+        -def "<list>"   A space seperated list of column names to use. Useful when you want to
+                        use the program on files that are not writable. i.e defining the /etc/passwd
+                        file for scorchdb access ;
+                          --file /etc/passwd -def "username shadow uid gid comment home shell"
 
         -<col> [-<col>] Display result for columns specified
 
